@@ -19,6 +19,8 @@ $zone = $this->get('zone');
 $rrsets = $this->get('rrsets');
 $pending = $this->get('pending');
 $changesets = $this->get('changesets');
+$changeset_filters = $this->get('changeset_filters');
+$changeset_pagecount = $this->get('changeset_pagecount');
 $access = $this->get('access');
 $accounts = $this->get('accounts');
 $cryptokeys = $this->get('cryptokeys');
@@ -182,6 +184,7 @@ global $output_formatter;
 								<option value="NS" data-content-pattern="\S*">NS</option>
 								<?php } ?>
 								<option value="LOC" data-content-pattern="[0-9]{1,2} ([0-9]{1,3} ([0-9]{1,2}(\.[0-9]{1,3})?)?)? [NS] [0-9]{1,2} ([0-9]{1,3} ([0-9]{1,2}(\.[0-9]{1,3})?)?)? [EW] -?[0-9]+(\.[0-9]{1,2})?m?( [0-9]+(\.[0-9]{1,2})?m?( [0-9]+(\.[0-9]{1,2})?m?( [0-9]+(\.[0-9]{1,2})?m?)))">LOC</option>
+								<option value="LUA" data-content-pattern=".*">LUA</option>
 								<option value="MX" data-content-pattern="[0-9]+\s+\S+">MX</option>
 								<option value="PTR" data-content-pattern="\S+">PTR</option>
 								<option value="SRV" data-content-pattern="[0-9]+\s+[0-9]+\s+[0-9]+\s+\S+">SRV</option>
@@ -329,7 +332,7 @@ global $output_formatter;
 									}
 								}
 								?>
-								<?php foreach($action->records as $record) { ?>
+								<?php foreach($action->records ?? [] as $record) { ?>
 								<?php if(isset($record->delete)) { ?>
 								<tr>
 									<td><del><?php out($record->content)?></del></td>
@@ -344,7 +347,7 @@ global $output_formatter;
 								<?php } ?>
 							</tbody>
 						</table>
-						<p>RRSet comment: <?php show_diff($current_comment, $action->comment)?></p>
+						<p>RRSet comment: <?php show_diff($current_comment, $action->comment ?? null )?></p>
 						<?php
 					}
 					?>
@@ -664,7 +667,22 @@ global $output_formatter;
 	</div>
 	<?php } ?>
 	<div role="tabpanel" class="tab-pane" id="changelog">
+		<?php
+		$changeset_page = $changeset_filters['page'];
+		$start_date = isset($changeset_filters['start_date']) ? $changeset_filters['start_date']->format("Y-m-d") : "";
+		$end_date = isset($changeset_filters['end_date']) ? $changeset_filters['end_date']->format("Y-m-d") : "";
+		$comment_query = isset($changeset_filters['comment']) ? $changeset_filters['comment'] : "";
+		function pagination($page) {
+			return out("?" . http_build_query(array_merge($_GET, ['page'=>$page])));
+		}
+		?>
 		<h2 class="sr-only">Changelog</h2>
+		<form class="form-inline" id="changelog-search" action="" method="GET">
+			<input placeholder="search comments" name="changeset_comment" value="<?php out($comment_query)?>" class="form-control">
+			<label>from: <input type="date" name="changeset_start" value="<?php out($start_date)?>" class="form-control"></label>
+			<label>to: <input type="date" name="changeset_end" value="<?php out($end_date)?>" class="form-control"></label>
+			<input type="submit" value="Search" class="btn btn-primary">
+		</form>
 		<button class="btn btn-default" id="changelog-expand-all">expand all</button>
 		<button class="btn btn-default" id="changelog-collapse-all">collapse all</button>
 		<?php if(count($changesets) == 0) { ?>
@@ -694,6 +712,33 @@ global $output_formatter;
 				<?php } ?>
 			</tbody>
 		</table>
+		<ul class="pagination">
+			<?php if ($changeset_page > 1) { ?>
+				<li><a href="<?php pagination(1)?>">First</a></li>
+				<li><a href="<?php pagination($changeset_page-1)?>">Previous</a></li>
+			<?php } else { ?>
+				<li class="disabled"><a>First</a></li>
+				<li class="disabled"><a>Previous</a></li>
+			<?php } ?>
+			<!-- 5 pages before and after the current page (if available). '...' to suggest that there are more pages -->
+			<?php if ($changeset_page-5 > 1) { ?>
+				<li class="disabled"><a>&hellip;</a></li>
+			<?php } ?>
+			<?php for($i = max($changeset_page-5, 1); $i <= min($changeset_page+5, $changeset_pagecount); $i++) { ?>
+				<li class="<?php if($i == $changeset_page) { out('active'); }?>"><a href="<?php pagination($i)?>"><?php out($i)?></a></li>
+			<?php } ?>
+			<?php if ($changeset_page+5 < $changeset_pagecount) { ?>
+				<li class="disabled"><a>&hellip;</a></li>
+			<?php } ?>
+			<?php if ($changeset_page < $changeset_pagecount) { ?>
+				<li><a href="<?php pagination($changeset_page+1)?>">Next</a></li>
+				<li><a href="<?php pagination($changeset_pagecount)?>">Last</a></li>
+			</li>
+			<?php } else { ?>
+				<li class="disabled"><a>Next</a></li>
+				<li class="disabled"><a>Last</a></li>
+			<?php } ?>
+		</ul>
 	</div>
 	<div role="tabpanel" class="tab-pane" id="access">
 		<h2 class="sr-only">User access</h2>

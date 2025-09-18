@@ -115,6 +115,7 @@ define('ESC_NONE', 9);
 * @param integer $escaping method of escaping to use
 */
 function out($string, $escaping = ESC_HTML) {
+	if(is_null($string)) return '';
 	switch($escaping) {
 	case ESC_HTML:
 		echo htmlspecialchars($string);
@@ -157,7 +158,7 @@ function outurl($url) {
  * @return string HTML-escaped string
  */
 function hesc($string) {
-	return htmlspecialchars($string);
+	return htmlspecialchars($string ?? '');
 }
 
 function english_list($array) {
@@ -361,7 +362,7 @@ class DNSContent {
 		case 'TXT':
 			$content = self::decode($content, $type, $zonename);
 			$split = array();
-			while($content !== false) {
+			while(mb_strlen($content) != 0) {
 				// Using mb_strcut to ensure that multi-byte characters are not cut in half
 				// (mb_substr would give 255 chars instead of 255 bytes)
 				$split[] = mb_strcut($content, 0, 255);
@@ -520,6 +521,14 @@ function log_exception($e) {
 		error_log("$error_number: $line");
 	}
 	return $error_number;
+}
+
+function parse_postgres_date($date_str) {
+	// If the date's microsecond part is exactly zero, it is omitted by
+	// postgres from its string representation and '.u' must be removed
+	// from the format, or parsing will fail.
+	$date_format = strpos($date_str, '.') !== false ? 'Y-m-d H:i:s.u' : 'Y-m-d H:i:s';
+	return DateTime::createFromFormat($date_format, $date_str);
 }
 
 class AccessDenied extends RuntimeException {}

@@ -30,6 +30,9 @@ if ($config['authentication']['form_based']) {
 } else {
 	if(isset($_SERVER['PHP_AUTH_USER'])) {
 		$active_user = $user_dir->get_user_by_uid($_SERVER['PHP_AUTH_USER']);
+  }
+  elseif(isset($_SERVER['REMOTE_USER'])) {
+	  $active_user = $user_dir->get_user_by_uid($_SERVER['REMOTE_USER']);
 	} else {
 		throw new Exception("Not logged in.");
 	}

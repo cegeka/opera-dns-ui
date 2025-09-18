@@ -33,6 +33,9 @@ class LDAP {
 	}
 
 	private function connect() {
+		// Disable cert checks
+		ldap_set_option(null, LDAP_OPT_X_TLS_REQUIRE_CERT, LDAP_OPT_X_TLS_NEVER);
+
 		$this->conn = ldap_connect($this->host);
 		if($this->conn === false) throw new LDAPConnectionFailureException('Invalid LDAP connection settings');
 		if($this->starttls) {
