@@ -20,18 +20,23 @@ require('core.php');
 ob_start();
 set_exception_handler('exception_handler');
 
-if(isset($_SERVER['PHP_AUTH_USER'])) {
-	$active_user = $user_dir->get_user_by_uid($_SERVER['PHP_AUTH_USER']);
-} elseif(isset($_SERVER['REMOTE_USER'])) {
-	$active_user = $user_dir->get_user_by_uid($_SERVER['REMOTE_USER']);
-} else {
-	throw new Exception("Not logged in.");
-}
-
 // Work out where we are on the server
 $request_url = preg_replace('|(.)/$|', '$1', $_SERVER['REQUEST_URI']);
 $relative_request_url = preg_replace('/^'.preg_quote($relative_frontend_base_url, '/').'/', '', $request_url) ?: '/';
 $absolute_request_url = $frontend_root_url.$request_url;
+
+if ($config['authentication']['form_based']) {
+	require('auth.php');
+} else {
+	if(isset($_SERVER['PHP_AUTH_USER'])) {
+		$active_user = $user_dir->get_user_by_uid($_SERVER['PHP_AUTH_USER']);
+  }
+  elseif(isset($_SERVER['REMOTE_USER'])) {
+	  $active_user = $user_dir->get_user_by_uid($_SERVER['REMOTE_USER']);
+	} else {
+		throw new Exception("Not logged in.");
+	}
+}
 
 if(empty($config['web']['enabled'])) {
 	require('views/error503.php');
